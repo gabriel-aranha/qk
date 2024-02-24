@@ -134,6 +134,28 @@ func TestProcessNewGame(t *testing.T) {
 			},
 			expectedTotalKills: 1,
 		},
+		{
+			description: "game with 1 kill and user disconnect",
+			gameLines: []string{
+				"20:37 ClientUserinfoChanged: 3 n\\Dono da Bola\\t\\0",
+				"20:40 ClientUserinfoChanged: 2 n\\Isgalamido\\t\\0",
+				"20:44 Kill: 1022 2 22: Isgalamido killed Dono da Bola by MOD_ROCKET_SPLASH",
+				"20:44 ClientDisconnect: 2",
+				"20:40 ClientUserinfoChanged: 4 n\\Isgalamido\\t\\0",
+				"20:44 Kill: 1022 2 22: Isgalamido killed Dono da Bola by MOD_ROCKET_SPLASH",
+			},
+			expectedKills: map[string]int{
+				"Isgalamido": 2,
+			},
+			expectedPlayers: []string{
+				"Dono da Bola",
+				"Isgalamido",
+			},
+			expectedKillByMeans: map[string]int{
+				"MOD_ROCKET_SPLASH": 2,
+			},
+			expectedTotalKills: 2,
+		},
 	}
 
 	for _, test := range tests {
@@ -159,6 +181,7 @@ func TestProcessUserInfoLine(t *testing.T) {
 	tests := []struct {
 		description      string
 		line             string
+		previousPlayerID string
 		previousUsername string
 		expectedPlayerID string
 		expectedUsername string
@@ -166,6 +189,7 @@ func TestProcessUserInfoLine(t *testing.T) {
 		{
 			description:      "new user",
 			line:             "20:34 ClientUserinfoChanged: 2 n\\Isgalamido\\t\\0",
+			previousPlayerID: "",
 			previousUsername: "",
 			expectedPlayerID: "2",
 			expectedUsername: "Isgalamido",
@@ -173,7 +197,16 @@ func TestProcessUserInfoLine(t *testing.T) {
 		{
 			description:      "username change",
 			line:             "20:37 ClientUserinfoChanged: 3 n\\Dono da Bola\\t\\0",
+			previousPlayerID: "",
 			previousUsername: "Isgalamido",
+			expectedPlayerID: "3",
+			expectedUsername: "Dono da Bola",
+		},
+		{
+			description:      "user disconnect",
+			line:             "20:37 ClientUserinfoChanged: 3 n\\Dono da Bola\\t\\0",
+			previousPlayerID: "2",
+			previousUsername: "",
 			expectedPlayerID: "3",
 			expectedUsername: "Dono da Bola",
 		},
@@ -185,6 +218,10 @@ func TestProcessUserInfoLine(t *testing.T) {
 			player := types.Player{CurrentUsername: test.previousUsername, UserID: test.expectedPlayerID}
 			game.PlayerList = append(game.PlayerList, player)
 		}
+		if test.previousPlayerID != "" {
+			player := types.Player{CurrentUsername: test.expectedUsername, UserID: test.previousPlayerID}
+			game.PlayerList = append(game.PlayerList, player)
+		}
 		game, err := p.processUserInfoLine(test.line, game)
 		if err != nil {
 			t.Errorf("%s: Unexpected error: %v", test.description, err)
@@ -192,6 +229,11 @@ func TestProcessUserInfoLine(t *testing.T) {
 		if test.previousUsername != "" {
 			if game.PlayerList[0].PreviousUsernames[0] != test.previousUsername {
 				t.Errorf("%s: Expected previous username %v, got %v", test.description, test.previousUsername, game.PlayerList[0].PreviousUsernames[0])
+			}
+		}
+		if test.previousPlayerID != "" {
+			if game.PlayerList[0].UserID != test.expectedPlayerID {
+				t.Errorf("%s: Expected new player ID %v, got %v", test.description, test.expectedPlayerID, game.PlayerList[0].UserID)
 			}
 		}
 	}

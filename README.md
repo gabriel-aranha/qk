@@ -11,7 +11,6 @@ This project reads Quake 3 game logs, parses all the relevant kill, user and gam
                 "Assasinu Credi",
                 "Dono da Bola",
                 "Oootsimo",
-                "Assasinu Credi"
             ],
             "kills": {
                 "Isgalamido": 2,

@@ -127,6 +127,15 @@ func (p *Parser) processUserInfoLine(line string, game types.Game) (types.Game, 
 		}
 	}
 
+	// Check if player with the same username exists in the game
+	for i, existingPlayer := range game.PlayerList {
+		if existingPlayer.CurrentUsername == currentUsername {
+			// If the player has reconnected with a new userID, update the player struct
+			game.PlayerList[i].UserID = userID
+			return game, nil
+		}
+	}
+
 	// If not, add player to the game
 	game.PlayerList = append(game.PlayerList, newPlayer)
 
